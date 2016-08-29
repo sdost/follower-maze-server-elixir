@@ -20,7 +20,7 @@ Follower Maze Server Test
   The client server allows multiple clients to connect and stores their tcp sockets in a `Map`. Once the user is registered, events coming in are routed to the appropriate clients based on the rules set forth in the specification.
 
 ##Methodology
-  This application starts four processes at launch: one `Task` for each server (User.Server & Event.Server), Event.Manager, and User.Manager. Event.Manager uses the GenEvent behavior provide a simple event manager, with Event.Handler handling storage and draining of the event queue. User.Manager holds a `Map` of sockets for each user connection, as well as a `Map` of followers for each user based on Follow events. User.Manager also handles the side effects of each processed event.
+  This application starts four processes at launch: one `Task` for each server (User.Server & Event.Server), Event.Manager, and User.Manager. Event.Manager handles storage and draining of the event queue. User.Manager holds a `Map` of sockets for each user connection, as well as a `Map` of followers for each user based on Follow events. User.Manager also handles the side effects of each processed event.
 
 ##Performance
   The event stream processing should take O(n).  Processing each event should be either constant-time or O(n) depending on the event type.
