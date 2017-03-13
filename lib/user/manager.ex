@@ -20,9 +20,9 @@ defmodule User.Manager do
   end
 
   def send_event(event) do
-    command = 
-      event 
-      |> Map.from_struct 
+    command =
+      event
+      |> Map.from_struct
       |> (fn %{type: type, from: from, to: to, msg: msg} -> {type, from, to, msg} end).()
     GenServer.cast(__MODULE__, command)
   end
@@ -45,7 +45,7 @@ defmodule User.Manager do
   def handle_info({:tcp_closed, socket}, state) do
     state.sockets
     |> Enum.find(fn {_, v} -> v == socket end)
-    |> Enum.map(fn {_, v} -> v end)
+    |> elem(1)
     |> delete
   end
 

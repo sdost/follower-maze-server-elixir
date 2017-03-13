@@ -4,20 +4,30 @@ defmodule User.Server do
   @tcp_opts [:binary, packet: :line, active: false, reuseaddr: true, keepalive: true]
 
   def start(port) do
-    { :ok, server } = :gen_tcp.listen(port, @tcp_opts)
-    accept_client(server)
+    start_listener(port, 0)
+  end
+
+  defp start_listener(_, 3), do: Logger.debug("[User.Server] Failed to start listener.")
+  defp start_listener(port, retry) do
+    Logger.debug("[User.Server] Attempting to start listener. Retry: #{retry}")
+    case :gen_tcp.listen(port, @tcp_opts) do
+      {:ok, server} -> accept_client(server)
+      {:error, _} -> start_listener(port, retry+1)
+    end
   end
 
   defp accept_client(server) do
-    { :ok, client } = :gen_tcp.accept(server)
-    spawn fn -> read_message(client) end
+    case :gen_tcp.accept(server) do
+      { :ok, client } -> spawn fn -> read_message(client) end
+      _ -> Logger.error("[User.Server] Failed to accept new connection.")
+    end
     accept_client(server)
   end
 
   defp read_message(client) do
     case :gen_tcp.recv(client, 0) do
       { :ok, message } ->
-        message 
+        message
         |> String.trim
         |> String.to_integer
         |> register_user(client)

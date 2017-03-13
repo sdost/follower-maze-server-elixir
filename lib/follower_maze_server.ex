@@ -11,11 +11,7 @@ defmodule FollowerMazeServer do
       worker(Task, [User.Server, :start, [9099]], [id: User.Server]),
     ]
 
-    opts = [strategy: :one_for_one, name: FollowerMazeServer.Supervisor]
+    opts = [strategy: :one_for_all, name: FollowerMazeServer.Supervisor]
     Supervisor.start_link(children, opts)
-  end
-
-  def main(_) do
-    IO.gets "Press enter to stop servers."
   end
 end

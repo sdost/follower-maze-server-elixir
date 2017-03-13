@@ -8,21 +8,31 @@ defmodule Event.Server do
   @tcp_opts [:binary, packet: :line, active: false, reuseaddr: true]
 
   def start(port) do
-    { :ok, server } = :gen_tcp.listen(port, @tcp_opts)
-    accept_client(server)
+    start_listener(port, 0)
+  end
+
+  defp start_listener(_, 3), do: Logger.debug("[Event.Server] Failed to start listener.")
+  defp start_listener(port, retry) do
+    Logger.debug("[Event.Server] Attempting to start listener. Retry: #{retry}")
+    case :gen_tcp.listen(port, @tcp_opts) do
+      {:ok, server} -> accept_client(server)
+      {:error, _} -> start_listener(port, retry+1)
+    end
   end
 
   defp accept_client(server) do
-    { :ok, client } = :gen_tcp.accept(server)
-    read_message(client, 1)
+    case :gen_tcp.accept(server) do
+      { :ok, client } -> read_message(client, 1)
+      _ -> Logger.error("[Event.Server] Failed to accept new connection.")
+    end
   end
 
   defp read_message(client, next_message) do
     case :gen_tcp.recv(client, 0) do
       { :ok, message } ->
-        message 
+        message
         |> format_event
-        |> parse_event 
+        |> parse_event
         |> Event.Manager.insert
         read_message(client, process_event(next_message))
       { :error, _ } ->
@@ -31,7 +41,7 @@ defmodule Event.Server do
   end
 
   defp format_event(msg) do
-    parsed_message = 
+    parsed_message =
       msg
       |> String.split("|")
       |> Enum.map(&String.trim/1)
@@ -40,7 +50,7 @@ defmodule Event.Server do
 
   defp parse_event({[seq_id, "B"], msg}) do
     %Event{
-      seq_id: String.to_integer(seq_id), 
+      seq_id: String.to_integer(seq_id),
       type: :broadcast,
       msg: msg
     }
@@ -48,8 +58,8 @@ defmodule Event.Server do
 
   defp parse_event({[seq_id, "S", from], msg}) do
     %Event{
-      seq_id: String.to_integer(seq_id), 
-      type: :status, 
+      seq_id: String.to_integer(seq_id),
+      type: :status,
       from: String.to_integer(from),
       msg: msg
     }
@@ -57,9 +67,9 @@ defmodule Event.Server do
 
   defp parse_event({[seq_id, "F", from, to], msg}) do
     %Event{
-      seq_id: String.to_integer(seq_id), 
-      type: :follow, 
-      from: String.to_integer(from), 
+      seq_id: String.to_integer(seq_id),
+      type: :follow,
+      from: String.to_integer(from),
       to: String.to_integer(to),
       msg: msg
     }
@@ -67,9 +77,9 @@ defmodule Event.Server do
 
   defp parse_event({[seq_id, "U", from, to], msg}) do
     %Event{
-      seq_id: String.to_integer(seq_id), 
-      type: :unfollow, 
-      from: String.to_integer(from), 
+      seq_id: String.to_integer(seq_id),
+      type: :unfollow,
+      from: String.to_integer(from),
       to: String.to_integer(to),
       msg: msg
     }
@@ -77,9 +87,9 @@ defmodule Event.Server do
 
   defp parse_event({[seq_id, "P", from, to], msg}) do
     %Event{
-      seq_id: String.to_integer(seq_id), 
-      type: :private, 
-      from: String.to_integer(from), 
+      seq_id: String.to_integer(seq_id),
+      type: :private,
+      from: String.to_integer(from),
       to: String.to_integer(to),
       msg: msg
     }
@@ -87,10 +97,10 @@ defmodule Event.Server do
 
   defp process_event(seq_id) do
     case Event.Manager.next(seq_id) do
-      { :ok, event } -> 
+      { :ok, event } ->
         User.Manager.send_event(event)
         process_event(seq_id + 1)
-      { :error, _ } -> 
+      { :error, _ } ->
         seq_id
     end
   end

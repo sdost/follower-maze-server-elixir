@@ -7,7 +7,7 @@ defmodule FollowerMazeServer.Mixfile do
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     escript: escript,
+     escript: escript(),
      deps: deps()]
   end
 
@@ -21,6 +21,6 @@ defmodule FollowerMazeServer.Mixfile do
   end
 
   defp deps do
-    []
+    [{:distillery, "~> 1.0"}]
   end
 end
